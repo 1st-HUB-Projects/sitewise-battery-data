@@ -1,0 +1,5 @@
+langchain-aws
+boto3
+streamlit
+pandas
+streamlit-aggrid

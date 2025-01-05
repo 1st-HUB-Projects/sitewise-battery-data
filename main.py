@@ -5,9 +5,10 @@ from typing import Dict
 from uuid import uuid4
 
 
-BATTERY_PROPERTY_ID = ""
+BATTERY_PROPERTY_ID = "11c55dde-26fd-48ba-aee4-83250fadaa79"
 ROBOT_ASSET_IDS = [
-
+"acf5b516-7f8b-496f-b02b-d2309e939192", "b40e1cee-0ea7-44d2-9e91-2fe22a9deccf", "77b59322-fd40-499c-8d90-c17f1ed1103e",
+"be46e17b-155a-44a4-8820-71db0764eab8","6afb9f88-dc71-4ca7-9100-138dd147853e"
 ]
 
 
@@ -37,7 +38,7 @@ class Robot:
                 "value": {
                     "integerValue": self._battery,
                 },
-                "timestamp": {
+                "timestamp": { 
                     "timeInSeconds": int(time.time()),
                 },
             }],
@@ -52,7 +53,7 @@ def main():
         entries = [robot.build_message() for robot in robots]
         client.batch_put_asset_property_value(entries=entries)
         print(f"Tick complete. Posted {len(robots)} statuses.")
-        time.sleep(1)
+        time.sleep(4)
 
 
 if __name__ == "__main__":
