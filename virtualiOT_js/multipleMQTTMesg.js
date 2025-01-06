@@ -9,7 +9,7 @@ const device = awsIot.device({
     caPath: './.certs/AmazonRootCA1.pem',        // Path to AWS Root CA
 
     clientId: 'iOTestID',            // Device client ID
-    host: `${ioT_End_Point}`  // .iot.${region}.amazonaws.com`   AWS IoT endpoint
+    host: process.env.IOT_END_POINT  // .iot.${region}.amazonaws.com`   AWS IoT endpoint
 });
 // Store a mapping between device_id and sensor_type
 const deviceSensorMap = {};
