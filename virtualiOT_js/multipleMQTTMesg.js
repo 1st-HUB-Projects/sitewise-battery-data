@@ -1,61 +1,72 @@
 const awsIot = require('aws-iot-device-sdk');
+const AWS = require('aws-sdk');
 
+const secretsManager = new AWS.SecretsManager({ region: process.env.AWS_DEFAULT_REGION });
 
-const region = "us-east-1"
-const device = awsIot.device({
-    keyPath: './.certs/iOTest_PrivateKey.pem',        // Path to your private key
-    certPath: './.certs/iOTest_Cert.pem',             // Path to your certificate
-    caPath: './.certs/AmazonRootCA1.pem',        // Path to AWS Root CA
-
-    clientId: 'iOTestID',            // Device client ID
-    host: process.env.IOT_END_POINT  // .iot.${region}.amazonaws.com`   AWS IoT endpoint
-});
-// Store a mapping between device_id and sensor_type
-const deviceSensorMap = {};
-
-
-function generateRandom(min, max) {
-    return Math.floor(Math.random() * (max - min + 1) + min);
-}
-
-// Function to generate the sensor value based on the sensor type
-function generateSensorValue(sensorType) {
-    if (sensorType === "Temperature") {
-        return (Math.random() * 110 - 10).toFixed(2); // Random temperature value between -10 and 100
-    } else {
-        return (Math.random() * 100 + 1).toFixed(2);  // Random pressure value between 1 and 100 Bar
+async function getCertificates(secretName) {
+    const secretValue = await secretsManager.getSecretValue({ SecretId: secretName }).promise();
+    if (secretValue.SecretString) {
+        return JSON.parse(secretValue.SecretString);
     }
+    throw new Error('Certificates not found in Secrets Manager');
 }
 
-device.on('connect', () => {
-    console.log('Device connected to AWS IoT Core');
+(async () => {
+    try {
+        // Fetch certificates from AWS Secrets Manager
+        const secretName = 'iot/certs'; // Replace with your Secrets Manager secret name
+        const certs = await getCertificates(secretName);
 
-    // Send data every 2 seconds
-    setInterval(() => {
-        const deviceId = `device_${generateRandom(1, 5)}`; // Random device ID from 1 to 5
-
-        // Ensure each device has a fixed sensor_type (either "Pressure" or "Temperature")
-        if (!deviceSensorMap[deviceId]) {
-            deviceSensorMap[deviceId] = (Math.random() < 0.5 ? "Pressure" : "Temperature");
-        }
-
-        const sensorType = deviceSensorMap[deviceId];
-        const value = generateSensorValue(sensorType); // Generate value based on sensor type
-
-        const payload = JSON.stringify({
-            "device_id": deviceId,
-            "sensor_type": sensorType,  // Fixed sensor_type based on device_id
-            "location": `Warehouse_${generateRandom(1, 3)}`, // Random location: Warehouse_1 to Warehouse_3
-            "value": value // Random value based on sensor type
+        // Initialize the IoT device
+        const device = awsIot.device({
+            privateKey: Buffer.from(certs.privateKey),
+            clientCert: Buffer.from(certs.certificate),
+            caCert: Buffer.from(certs.ca),
+            clientId: 'iOTestID',
+            host: process.env.IOT_END_POINT
         });
 
-        // Publish to the topic 'iot/sub'
-        device.publish('iot/sub', payload);
-        console.log('Message sent:', payload);
-    }, 5000);
-});
+        const deviceSensorMap = {};
 
+        function generateRandom(min, max) {
+            return Math.floor(Math.random() * (max - min + 1) + min);
+        }
 
-device.on('error', function(error) {
-    console.error('Error:', error);
-});
+        function generateSensorValue(sensorType) {
+            return sensorType === "Temperature"
+                ? (Math.random() * 110 - 10).toFixed(2) // Random temperature value between -10 and 100
+                : (Math.random() * 100 + 1).toFixed(2); // Random pressure value between 1 and 100 Bar
+        }
+
+        device.on('connect', () => {
+            console.log('Device connected to AWS IoT Core');
+
+            setInterval(() => {
+                const deviceId = `device_${generateRandom(1, 5)}`;
+
+                if (!deviceSensorMap[deviceId]) {
+                    deviceSensorMap[deviceId] = Math.random() < 0.5 ? "Pressure" : "Temperature";
+                }
+
+                const sensorType = deviceSensorMap[deviceId];
+                const value = generateSensorValue(sensorType);
+
+                const payload = JSON.stringify({
+                    device_id: deviceId,
+                    sensor_type: sensorType,
+                    location: `Warehouse_${generateRandom(1, 3)}`,
+                    value
+                });
+
+                device.publish('iot/sub', payload);
+                console.log('Message sent:', payload);
+            }, 5000);
+        });
+
+        device.on('error', (error) => {
+            console.error('Error:', error);
+        });
+    } catch (err) {
+        console.error('Failed to initialize device:', err);
+    }
+})();
