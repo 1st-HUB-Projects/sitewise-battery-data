@@ -1,7 +1,6 @@
 const awsIot = require('aws-iot-device-sdk');
 
 
-const ioT_End_Point = "a5b18sm2w1aeo-ats.iot.us-east-1.amazonaws.com"
 const region = "us-east-1"
 const device = awsIot.device({
     keyPath: './.certs/iOTest_PrivateKey.pem',        // Path to your private key
