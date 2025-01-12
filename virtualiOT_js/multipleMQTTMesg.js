@@ -6,7 +6,7 @@ const region = "us-east-1"
 const device = awsIot.device({
     keyPath: './.certs/iOTest_PrivateKey.pem',        // Path to your private key
     certPath: './.certs/iOTest_Cert.pem',             // Path to your certificate
-    caPath: './.certs/AmazonRootCA1.pem',        // Path to AWS Root CA
+    caPath: './.certs/AmazonRootCA.pem',        // Path to AWS Root CA
 
     clientId: 'iOTestID',            // Device client ID
     host: process.env.IOT_END_POINT  // .iot.${region}.amazonaws.com`   AWS IoT endpoint
